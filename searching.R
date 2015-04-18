@@ -1,0 +1,28 @@
+library(tm)
+library(SnowballC)
+files <- list.files(pattern = ".txt")
+filelist <- lapply(files , readLines)
+flength <- length(filelist)
+names(filelist) <- paste0("doc" , 1:flength)
+query = "country image"
+corpus <-  VectorSource(c(filelist , query))
+corpus$Names <- c(names(filelist), "query")
+corpus1 <- Corpus(corpus)
+corpusclean <- tm_map(corpus1 , tolower)
+corpusclean <- tm_map(corpusclean , removeNumbers)
+corpusclean <- tm_map(corpusclean , removeWords , stopwords())
+corpusclean <- tm_map(corpusclean , removePunctuation)
+corpusclean <- tm_map(corpusclean , stripWhitespace)
+corpusclean <- tm_map(corpusclean , stemDocument)
+corpusclean <- tm_map(corpusclean , PlainTextDocument)
+corpustdm <- TermDocumentMatrix(corpusclean)
+inspect(corpustdm[1:5,])
+corpustdm <- TermDocumentMatrix(corpusclean ,control = list(weighting = weightTfIdf ))
+inspect(corpustdm[1:5,])
+queryvector <- corpustdm[,4]
+termvector <- corpustdm[,1:3]
+score <- t(as.matrix(queryvector)) %*% as.matrix(termvector)
+print(score)
+results <- data.frame(doc = names(filelist) , score = t(score) , text = unlist(filelist))
+results <- results[order(results$score , decreasing = TRUE)]
+print(results)
